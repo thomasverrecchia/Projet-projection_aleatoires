@@ -1,5 +1,6 @@
 import numpy as np
 import scipy.linalg.interpolative
+from Stage_A import*
 
 
 def direct_svd(q, a):
@@ -30,7 +31,3 @@ def svd_row_extraction(q, a, l):
     # z = np.dot(proj, rh)
 
 
-a = np.array([[1, 1, 1], [1, 1, 0], [1, 0, 0]])
-q = randomized_range_finder(a, 2)
-
-svd_row_extraction(q, a, 2)
