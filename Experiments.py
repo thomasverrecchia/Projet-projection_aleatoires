@@ -74,19 +74,37 @@ def error_calculation_between_A_and_Q(A,l) :
     X = np.linalg.multi_dot([Q,Q.T,A])
     return np.linalg.norm(A-X)
 
-def display_error_calculation_between_A_and_Q(m,n) :
+def display_error_calculation_between_A_and_Q(m,n, p) :
     """
     :param m: An integer, the number of row of the matrix A.
     :param n: An integer, the number of columns of the matrix A.
-    :return: Display a graph of the error depending on l.
+    :param p:  oversampling parameter (p ≥ 2)
+    :return: Display a graph of the error, singular valus and theorical bounds depending on k.
     """
-    A = np.random.randn(m,n)
+    A = np.random.randn(m, n)
+    singular_value = np.linalg.svd(A, full_matrices=True)[1]
     error = []
-    for l in range(1,n+1) :
-        error += [error_calculation_between_A_and_Q(A,l)]
-    print(error)
+    theorical_bounds = []
+    strange_values = []
+
+    for k in range(1, min(m, n) - p + 1) :
+        l = k + p
+        error += [error_calculation_between_A_and_Q(A, l)]
+        theorical_bounds += [(1 + (11 * (l * min(m, n)) ** (1 / 2))) * singular_value[k + 1]]
+
+        if error[-1] > theorical_bounds[-1]:
+            strange_values += [error[-1], theorical_bounds[-1], k, p]
+
     plt.plot(error)
+    plt.plot(theorical_bounds)
+    plt.plot(singular_value[2 : min(m, n) - p + 2])
+    plt.xlabel('k')
+    plt.ylabel('error')
+    plt.title("Actual error for calculation between A and Q")
+    plt.legend(["Actual error", "Theoretical bounds (maximal error)", "Singular values (minimal error)"], loc = "upper right")
+    plt.savefig("Actual error, singular valus (minimal error) and theorical bounds (maximal error) for calculation_between_A_and_Q.png")
     plt.show()
+    return strange_values
 
 def display_expectation_of_error_calculation_between_A_and_Q(m, n, N, p) :
     """
@@ -94,13 +112,13 @@ def display_expectation_of_error_calculation_between_A_and_Q(m, n, N, p) :
     :param n: An integer, the number of columns of the matrix A.
     :param N: An integer, the number of matrix created by value of l.
     :param p:  oversampling parameter (p ≥ 2)
-    :return: Display a graph of the expectation of error depending on l and a list of valus whis not respect Theorem 1.1.
+    :return: Display a graph of the expectation of error, singular valus and theorical bounds depending on k and a list of valus whis not respect Theorem 1.1.
     """
     A = np.random.randn(m, n)
-    svdA = np.linalg.svd(A, full_matrices=True)[1]
+    singular_value = np.linalg.svd(A, full_matrices=True)[1]
     strange_values = []
     expectation_of_error = []
-    therical_bounds = []
+    theorical_bounds = []
 
     for k in range(0, min(m, n) - p + 1):
         l = k + p
@@ -109,28 +127,34 @@ def display_expectation_of_error_calculation_between_A_and_Q(m, n, N, p) :
             error += [error_calculation_between_A_and_Q(A, l)]
 
         expectation_of_error += [(1 / N) * sum(error)]
-        therical_bounds += [(1 + (4 * (l * min(m, n)) ** (1 / 2)) / (p - 1)) * svdA[k + 1]]
-        if expectation_of_error[-1] > therical_bounds[-1]:
-            strange_values += [expectation_of_error[-1], therical_bounds[-1], k, p]
-
+        theorical_bounds += [(1 + (4 * ((l * min(m, n)) ** (1 / 2)) / (p - 1))) * singular_value[k + 1]]
+        if expectation_of_error[-1] > theorical_bounds[-1]:
+            strange_values += [expectation_of_error[-1], theorical_bounds[-1], k, p]
+    #print(len(expectation_of_error), len(theorical_bounds), len(singular_value))
     plt.plot(expectation_of_error)
-    plt.plot(therical_bounds)
+    plt.plot(theorical_bounds)
+    plt.plot(singular_value[2 : min(m, n) - p + 3])
+    plt.xlabel('k')
+    plt.ylabel('error')
+    plt.title("Actual expectation of error for calculation between A and Q")
+    plt.legend(["Actual expectation of error", "Theoretical bounds (maximal error)", "Singular values (minimal error)"], loc = "upper right")
+    plt.savefig("Actual error, singular valus (minimal error) and theorical bounds (maximal error) for expetation of calculation_between_A_and_Q.png")
     plt.show()
 
     return strange_values
 
-def error_calculation_between_Clasical_SVD_and_Randomized_SVD(A,l) :
+def error_calculation_between_Clasical_SVD_and_Randomized_SVD(A,l, q) :
     """
     :param A: An m*n matrix.
     :param l: An integer
     :return: The error between the original matrix and the randomized matrix Q.
     """
-    Q = randomized_range_finder(A,l)
+    Q = randomized_power_iteration(A, l, q)
     Ub, S, Vh = direct_svd(Q, A)
     X = np.linalg.multi_dot([Ub,S,Vh])
     return np.linalg.norm(A-X)
 
-def display_error_calculation_between_Clasical_SVD_and_Randomized_SVD(m,n) :
+def display_error_calculation_between_Clasical_SVD_and_Randomized_SVD(m, n, q) :
     """
     :param m: An integer, the number of row of the matrix A.
     :param n: An integer, the number of columns of the matrix A.
@@ -138,43 +162,93 @@ def display_error_calculation_between_Clasical_SVD_and_Randomized_SVD(m,n) :
     """
     A = np.random.randn(m, n)
     error = []
-    for l in range(1, n+1) :
-        error += [error_calculation_between_Clasical_SVD_and_Randomized_SVD(A, l)]
-    print(error)
+    singular_value = np.linalg.svd(A, full_matrices=True)[1]
+
+    for l in range(1, min(m, n) + 1) :
+        error += [error_calculation_between_Clasical_SVD_and_Randomized_SVD(A, l, q)]
+    #print(error)
     plt.plot(error)
+    plt.plot(singular_value[2 : min(m, n) + 1])
+    plt.xlabel('k')
+    plt.ylabel('error')
+    plt.title("Actual error for calculation between Clasical SVD and Randomized SVD")
+    plt.legend(["Actual error", "Singular values (minimal error)"], loc="upper right")
+    plt.savefig("Actual error, singular values (minimal error) for calculation between A and Q.png")
     plt.show()
 
-def display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD(m, n, N, q = 1) :
+def display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD(m, n, N, q) :
     """
     :param m: An integer, the number of row of the matrix A.
     :param n: An integer, the number of columns of the matrix A.
     :param N: An integer, the number of matrix created by value of l.
     :param q:
-    :return: Display a graph of the expectation of error depending on l and a list of valus whis not respect Theorem 1.1.
+    :return: Display a graph of the expectation of error, singular values and theoretical bounds depending on k and a list of valus whis not respect Theorem 1.10.
     """
     A = np.random.randn(m, n)
-    svdA = np.linalg.svd(A, full_matrices=True)[1]
+    singular_value = np.linalg.svd(A, full_matrices=True)[1]
     strange_values = []
     expectation_of_error = []
-    therical_bounds = []
+    theorical_bounds = []
     for k in range(2, int(min(m, n) / 2) + 1):
         l = 2 * k
         error = []
         for i in range(N):
-            error += [error_calculation_between_Clasical_SVD_and_Randomized_SVD(A, l)]
+            error += [error_calculation_between_Clasical_SVD_and_Randomized_SVD(A, l, q)]
 
         expectation_of_error += [(1 / N) * sum(error)]
-        therical_bounds += [((1 + (4 * ((2 * min(m, n)) / (k - 1)) ** (1 / 2))) ** (1 / (2 * q + 1))) * svdA[k + 1]]
-        if expectation_of_error[-1] > therical_bounds[-1]:
-            strange_values += [[expectation_of_error[-1], therical_bounds[-1], k]]
-    print(len(strange_values))
+        theorical_bounds += [((1 + (4 * ((2 * min(m, n)) / (k - 1)) ** (1 / 2))) ** (1 / (2 * q + 1))) * singular_value[k + 1]]
+        if expectation_of_error[-1] > theorical_bounds[-1]:
+            strange_values += [[expectation_of_error[-1], theorical_bounds[-1], k]]
+            #print(singular_value[k + 1])
     plt.plot(expectation_of_error)
-    plt.plot(therical_bounds)
+    plt.plot(theorical_bounds)
+    plt.plot(singular_value[2 : int(min(m, n) / 2) + 1])
+    plt.xlabel('k')
+    plt.ylabel('error')
+    plt.title("Error betwen Clasical SVD and Randomized SVD")
+    plt.legend(["Actual expectation of error", "Theoretical bounds (maximal error)", "Singular values (minimal error)"], loc = "upper right")
+    plt.savefig("error_Clasical_SVD_and_Randomized_SVD.png")
     plt.show()
 
     return strange_values
 
+def display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD_bis(m, n, N, q) :
+    """
+    :param m: An integer, the number of row of the matrix A.
+    :param n: An integer, the number of columns of the matrix A.
+    :param N: An integer, the number of matrix created by value of l.
+    :param q:
+    :return: Display a graph of the expectation of error, singular values and theoretical bounds depending on k and a list of valus whis not respect Theorem 1.11.
+    """
+    A = np.random.randn(m, n)
+    singular_value = np.linalg.svd(A, full_matrices=True)[1]
+    strange_values = []
+    expectation_of_error = []
+    theorical_bounds = []
+    for k in range(2, int(min(m, n) / 2) + 1):
+        l = k
+        error = []
+        for i in range(N):
+            error += [error_calculation_between_Clasical_SVD_and_Randomized_SVD(A, l, q)]
 
-#print(display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD(100, 10, 20, 2))
-#print(display_error_calculation_between_A_and_Q(100, 100))
-#print(display_expectation_of_error_calculation_between_A_and_Q(100, 100, 20, 2))
+        expectation_of_error += [(1 / N) * sum(error)]
+        theorical_bounds += [((1 + (4 * ((2 * min(m, n)) / (k - 1)) ** (1 / 2))) ** (1 / (2 * q + 1))) * singular_value[k + 1] + singular_value[k + 1]]
+        if expectation_of_error[-1] > theorical_bounds[-1]:
+            strange_values += [[expectation_of_error[-1], theorical_bounds[-1], k]]
+            #print(singular_value[k + 1])
+    plt.plot(expectation_of_error)
+    plt.plot(theorical_bounds)
+    plt.plot(singular_value[2 : int(min(m, n) / 2) + 1])
+    plt.xlabel('k')
+    plt.ylabel('error')
+    plt.title("Error betwen Clasical SVD and Randomized SVD")
+    plt.legend(["Actual expectation of error", "Theoretical bounds (maximal error)", "Singular values (minimal error)"], loc = "upper right")
+    plt.savefig("error_Clasical_SVD_and_Randomized_SVD_bis.png")
+    plt.show()
+
+    return strange_values
+
+#print(display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD(100, 1000, 20, 2))
+#print(display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD_bis(100, 1000, 20, 2))
+#print(display_error_calculation_between_A_and_Q(100, 1000, 2))
+#print(display_expectation_of_error_calculation_between_A_and_Q(100, 1000, 20, 2))
