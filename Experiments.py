@@ -1,13 +1,15 @@
 from Stage_B import*
 import matplotlib.pyplot as plt
 from time import*
+from scipy.sparse.linalg import svds
+from Tools import*
 
 
 
 # Calculation time difference between stage A methods
 ####################################################################################################
 
-def calculate_time_between_range_finder_and_power_iteration(m,n,l,q=3) :
+def calculate_time_range_finder_and_power_iteration(m,n,l,q=3) :
     A = np.random.randn(m,n)
     starting_range_finder = time()
     Q = randomized_range_finder(A,l)
@@ -15,51 +17,77 @@ def calculate_time_between_range_finder_and_power_iteration(m,n,l,q=3) :
     starting_power_iteration = time()
     Q = randomized_power_iteration(A,l,q)
     ending_power_iteration = time() - starting_power_iteration
-    return ending_range_finder - ending_power_iteration
+    return [ending_power_iteration,ending_range_finder]
 
 
 
 def display_time_between_range_finder_and_power_iteration(min,max,q=3) :
-    timing = []
+    power_iteration=[]
+    range_finder=[]
     for i in range(min,max) :
         print(i)
-        timing += [calculate_time_between_range_finder_and_power_iteration(i,i,int(i/2))]
-    plt.plot(timing)
-    plt.axhline(y=0,color="red")
-    plt.title("time of range finder - time of power iteration")
-    plt.xlabel("size of the matrix")
-    plt.ylabel("time in (s)")
-    plt.savefig("Time_between_power_iteration_and_range_finder.png")
-    plt.show()
-
-# Calculation time difference between randomized svd and numpy svd.
-####################################################################################################
-
-def calculate_time_between_numpy_svd_and_randomized_svd(m,n,l,q=3) :
-    A = np.random.randn(m, n)
-    starting_numpy_svd = time()
-    Q = np.linalg.svd(A)
-    ending_numpy_svd = time() - starting_numpy_svd
-    starting_randomized_svd = time()
-    Q = randomized_power_iteration(A, l, q)
-    direct = direct_svd(Q,A)
-    ending_randomized_svd = time() - starting_randomized_svd
-    return ending_numpy_svd - ending_randomized_svd
-
-def display_time_between_numpy_svd_and_randomized_svd(min,max,q=3) :
-    timing = []
-    for i in range(min,max) :
-        print(i)
-        timing += [calculate_time_between_numpy_svd_and_randomized_svd(i,i,int(i/2))]
-    plt.plot(timing)
-    plt.axhline(y=0,color="red")
-    plt.title("time of numpy svd - time of randomized svd")
-    plt.xlabel("size of the matrix")
-    plt.ylabel("time in (s)")
-    plt.savefig("Time_between_numpy_svd_and_randomized_svd.png")
+        calculate = calculate_time_range_finder_and_power_iteration(i,i,int(i/2))
+        power_iteration += [calculate[0]]
+        range_finder += [calculate[1]]
+    plt.plot(power_iteration,color="red",label="Power iteration")
+    plt.plot(range_finder,color="green",label= "Range finder")
+    plt.legend()
+    plt.xlabel("Dimension de la matrice (n x n)")
+    plt.ylabel("Temps de calcul (en secondes)")
+    plt.savefig("Time_power_iteration_and_range_finder.png")
     plt.show()
 
 #display_time_between_range_finder_and_power_iteration(10,1000)
+
+# Close singular values and randomized power iteration algorithm.
+####################################################################################################
+
+def calculate_time_between_range_finder_and_power_iteration_with_controled_matrix(m,l,fct,q=3) :
+    A = generate_singular_values_matrix(m,fct,m)
+    starting_range_finder = time()
+    Q = randomized_range_finder(A, l)
+    ending_range_finder = time() - starting_range_finder
+    starting_power_iteration = time()
+    Q = randomized_power_iteration(A, l, q)
+    ending_power_iteration = time() - starting_power_iteration
+    return ending_power_iteration - ending_range_finder
+
+
+
+#print(calculate_time_between_range_finder_and_power_iteration(10000,10000,5000))
+
+
+# Calculation time difference between randomized svd and scipy svds.
+####################################################################################################
+
+def calculate_time_scipy_svd_and_randomized_svd(m,n,l) :
+    A = np.random.randn(m, n)
+    starting_scipy_svd = time()
+    Q = svds(A,k=l)
+    ending_scipy_svd = time() - starting_scipy_svd
+    starting_randomized_svd = time()
+    Q = randomized_range_finder(A, l)
+    direct = direct_svd(Q,A)
+    ending_randomized_svd = time() - starting_randomized_svd
+    return [ending_scipy_svd,ending_randomized_svd]
+
+def display_time_between_scipy_svd_and_randomized_svd(min,max,q=3) :
+    scipy = []
+    randomized = []
+    for i in range(min,max) :
+        print(i)
+        calculate = calculate_time_scipy_svd_and_randomized_svd(i,i,int(i/2))
+        scipy += [calculate[0]]
+        randomized += [calculate[1]]
+    plt.plot(scipy,color='black',label='Scipy-SVDS')
+    plt.plot(randomized,color='orange',label="Random")
+    plt.legend()
+    plt.xlabel("Dimension de la matrice (n x n)")
+    plt.ylabel("Temps de calcul (en secondes)")
+    plt.savefig("Time_scipy_svds_and_randomized.png")
+    plt.show()
+
+#display_time_between_scipy_svd_and_randomized_svd(10,1000)
 
 # Calculation of error between the original matrix and the randomized one ( i.e. between A and Q ).
 ####################################################################################################
@@ -211,6 +239,8 @@ def display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized
     plt.show()
 
     return strange_values
+
+display_expectation_of_error_calculation_between_A_and_Q(100,100,10,3)
 
 def display_expectation_of_error_calculation_between_Clasical_SVD_and_Randomized_SVD_bis(m, n, N, q) :
     """
